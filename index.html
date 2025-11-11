@@ -5184,13 +5184,53 @@ function filterMaterials() {
 </script>
 
 <!-- INJECTED: Supabase Realtime + Dummy Login -->
+<!-- 🔄 Supabase CRUD Realtime Integration -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 const SUPABASE_URL = "https://dufvyblfljkpokkgfymy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1ZnZ5YmxmbGprcG9ra2dmeW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3Nzk0NjIsImV4cCI6MjA3ODM1NTQ2Mn0.W5lC8MnxTeZcpJjGnGFR0QrdVn6JdYqSlJ_qWAKJ4PA";
-document.addEventListener("DOMContentLoaded", async ()=>{
-  const tables=["studentsData","regionalAdmins","availableClasses","educationInfo","scheduleData","activityScheduleData","classMaterials","availableSchools"];
-  console.log("Supabase initialized. Monitoring tables:", tables);
-});
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR1ZnZ5YmxmbGprcG9ra2dmeW15Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3Nzk0NjIsImV4cCI6MjA3ODM1NTQ2Mn0.W5lC8MnxTeZcpJjGnGFR0QrdVn6JdYqSlJ_qWAKJ4PA";
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+/* Fungsi: ambil data realtime studentsData */
+async function loadStudents() {
+  const { data, error } = await supabase.from('studentsData').select('*').order('id', { ascending: true });
+  if (error) { console.error(error); return; }
+
+  const container = document.querySelector('#data-siswa-container');
+  if (!container) return;
+
+  container.innerHTML = data.map(item => `
+    <div class="p-3 border rounded mb-2">
+      <b>${item.name}</b> <br>
+      Kelas: ${item.class} <br>
+      Regional: ${item.regional}
+    </div>
+  `).join('');
+}
+
+/* Insert data */
+async function tambahSiswa(name, kelas, regional) {
+  const { error } = await supabase.from('studentsData').insert([{ name, class: kelas, regional }]);
+  if (error) console.error('Insert error:', error);
+}
+
+/* Delete data */
+async function hapusSiswa(id) {
+  const { error } = await supabase.from('studentsData').delete().eq('id', id);
+  if (error) console.error('Delete error:', error);
+}
+
+/* Realtime listener */
+supabase.channel('public:studentsData')
+  .on('postgres_changes', { event: '*', schema: 'public', table: 'studentsData' }, payload => {
+    console.log('Realtime update:', payload);
+    loadStudents();
+  })
+  .subscribe();
+
+/* Jalankan saat halaman pertama kali dibuka */
+document.addEventListener('DOMContentLoaded', loadStudents);
 </script>
+
+
 
